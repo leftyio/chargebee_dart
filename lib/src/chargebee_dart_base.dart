@@ -51,16 +51,14 @@ class ChargeBeeLoader {
   final _onCancel = new Completer<IFrameElement>();
 
   void load() {
-    final interop = (Function func) => allowInterop(func);
-
     _loader.load(new _ChargeBeeLoadOptions(
-        addIframe: interop((iframe) => _onAddIframe.complete(iframe)),
-        onLoad: interop((iframe, width, height) =>
+        addIframe: allowInterop((iframe) => _onAddIframe.complete(iframe)),
+        onLoad: allowInterop((iframe, width, height) =>
             _onLoad.complete(new IFrameDimensions(iframe, width, height))),
-        onResize: interop((iframe, width, height) =>
+        onResize: allowInterop((iframe, width, height) =>
             _onResize.add(new IFrameDimensions(iframe, width, height))),
-        onSuccess: interop((iframe) => _onSuccess.complete(iframe)),
-        onCancel: interop((iframe) => _onCancel.complete(iframe))));
+        onSuccess: allowInterop((iframe) => _onSuccess.complete(iframe)),
+        onCancel: allowInterop((iframe) => _onCancel.complete(iframe))));
   }
 
   void dispose() {
