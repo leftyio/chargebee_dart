@@ -25,7 +25,8 @@ class _ChargeBeeLoadOptions {
       Function onLoad,
       Function onResize,
       Function onSuccess,
-      Function onCancel});
+      Function onCancel,
+      Function onError});
 }
 
 @JS("ChargeBee")
@@ -47,18 +48,22 @@ class ChargeBeeLoader {
   final _onAddIframe = new Completer<IFrameElement>();
   final _onLoad = new Completer<IFrameDimensions>();
   final _onResize = new StreamController<IFrameDimensions>();
-  final _onSuccess = new Completer<IFrameElement>();
+  final _onSuccess = new Completer<OnSuccess>();
+  final _onError = new Completer<OnError>();
   final _onCancel = new Completer<IFrameElement>();
 
   void load() {
     _loader.load(new _ChargeBeeLoadOptions(
-        addIframe: allowInterop((iframe) => _onAddIframe.complete(iframe)),
+        addIframe: allowInterop(_onAddIframe.complete),
         onLoad: allowInterop((iframe, width, height) =>
             _onLoad.complete(new IFrameDimensions(iframe, width, height))),
         onResize: allowInterop((iframe, width, height) =>
             _onResize.add(new IFrameDimensions(iframe, width, height))),
-        onSuccess: allowInterop((iframe) => _onSuccess.complete(iframe)),
-        onCancel: allowInterop((iframe) => _onCancel.complete(iframe))));
+        onSuccess: allowInterop((iframe, message) =>
+            _onSuccess.complete(new OnSuccess(iframe, message))),
+        onError: allowInterop(
+            (iframe, error) => _onError.complete(new OnError(iframe, error))),
+        onCancel: allowInterop(_onCancel.complete)));
   }
 
   void dispose() {
@@ -81,17 +86,36 @@ class ChargeBeeLoader {
   Stream<IFrameDimensions> get onResize => _onResize.stream;
 
   /// This will be triggered when checkout is complete.
-  Future<IFrameElement> get onSuccess => _onSuccess.future;
+  Future<OnSuccess> get onSuccess => _onSuccess.future;
+
+  /// This will be triggered when checkout is complete.
+  Future<OnError> get onError => _onError.future;
 
   /// This will be triggered when user clicks on cancel button.
   Future<IFrameElement> get onCancel => _onCancel.future;
 }
 
-class IFrameDimensions {
+abstract class IFrameObject {
   final IFrameElement iframe;
+
+  IFrameObject(this.iframe);
+}
+
+class IFrameDimensions extends IFrameObject {
   final num height;
   final num width;
-  IFrameDimensions(this.iframe, this.width, this.height);
+  IFrameDimensions(IFrameElement iframe, this.width, this.height)
+      : super(iframe);
+}
+
+class OnSuccess extends IFrameObject {
+  final String message;
+  OnSuccess(IFrameElement iframe, this.message) : super(iframe);
+}
+
+class OnError extends IFrameObject {
+  final error;
+  OnError(IFrameElement iframe, this.error) : super(iframe);
 }
 
 final _api = "https://js.chargebee.com/v1/chargebee.js";
